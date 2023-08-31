@@ -1,0 +1,182 @@
+---
+title: 'Ejercicio 2: R   Estudiante Richard Douglas Grijalba'
+output:
+  html_document:
+    df_print: paged
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+ 
+```{r}
+getwd()
+```
+
+
+```{r}
+##Cargar el archivo “Airbnb_Milan.csv” como dataframe.
+df <- read.csv('Airbnb_Milan.csv')
+
+```
+```{r}
+# ver un resumen de los datos que componen el dataset 
+summary(df)
+```
+```{r}
+#ver los primeros datos del dataset
+head(df)
+```
+```{r}
+#Ver los nombres de las columnas 
+names(df)
+```
+```{r}
+#Crear un nuevo dataframe que contenga únicamente las siguientes columnas:
+#“host_is_superhost”
+#“host_identity_verified”
+#“bathrooms”
+#“bedrooms”
+#“daily_price”
+#“security_deposit”
+#“minimum_nights”
+#“number_of_reviews”
+#“review_scores_rating”
+
+df1 <-subset(df, select = c('host_is_superhost','host_identity_verified', 'bathrooms', 'bedrooms','daily_price','security_deposit','minimum_nights', 'number_of_reviews','review_scores_rating'))
+```
+```{r}
+# ver nuevamente los nombres de las columnas, pero en este caso del 
+#nuevo dataset
+
+names(df1)
+```
+```{r}
+library(dplyr)
+library(ggplot2)
+library(plotly)
+
+```
+
+
+```{r}
+#Cambiar los factores de la variable “host_is_superhost” de 0, 1 a: “SI” #y, “NO”. (investigar la función recode).
+
+df1$host_is_superhost = recode(df1$host_is_superhost, "0" = "SI", "1"  ="NO") 
+```
+```{r}
+df1$host_is_superhost <- recode(as.character(df1$host_is_superhost), "0" = "SI" ,"1" = "NO") %>% as.factor()
+```
+
+
+```{r}
+# se procede a ver los dato segun lo trabajado
+head(df1$host_is_superhost)
+```
+```{r}
+head(df1)
+```
+```{r}
+#Cambiar los factores de la variable “host_identity_verified” de 0, 1 a: “VERIFICA” y “NO VERIFICA”.
+df1$host_identity_verified = recode(df1$host_identity_verified, '0' = "Verifica", '1' ="No Verifica")
+```
+```{r}
+# se procede a ver los dato segun lo trabajado
+head(df1$host_identity_verified)
+```
+```{r}
+#Mostrar un resumen estadístico de los datos.
+summary(df1)
+
+```
+```{r}
+names(df1)
+```
+
+
+```{r}
+#Filtrar el dataset por apartamentos cuyo mínimo de noches sea igual o menor que siete.
+
+minimo_noches <- filter(df1, minimum_nights <= 7)
+```
+```{r}
+minimo_noches
+```
+```{r}
+names(df1)
+```
+
+
+```{r}
+#¿Cuál es el precio medio por día de una habitación en función de si el anfitrión tiene verificado o no su perfil?
+
+# se debe hacer un tipo de tabla resumen 
+
+precio_medio <- df1 %>% group_by(host_identity_verified)%>% summarise(price_mean = mean(daily_price))
+
+precio_medio
+```
+```{r}
+prices <- c(103.76,103.71)
+labels1 <- c("No Verifica","Verifica")
+pie(prices,labels1)
+```
+```{r}
+#Quién tiene más número de reseñas, ¿un super host o no super host?
+
+resenas <-df1 %>% group_by(host_is_superhost) %>% summarise(resenas_suma = sum(number_of_reviews))
+
+resenas
+```
+```{r}
+#Sobre la estadística anterior ¿quién tiene la puntuación media más alta?
+
+puntuacion_alta <-df1 %>% group_by(host_is_superhost) %>% summarise(resenas_mean = mean(number_of_reviews))
+
+puntuacion_alta
+```
+```{r}
+#Crea un vector categórico llamado “CATEGORÍA”, en función de que, si para la puntuación de las reseñas tiene de 0 a 49, sea “NO ACONSEJABLE”; de 50 a 75 sea “ESTÁNDAR”; y de 76 a 100 sea “TOP”.
+
+df1["CATEGORIA"] <-  factor(ifelse(df1$review_scores_rating <= 49, "NO ACONSEJABLE", ifelse(df1$review_scores_rating <= 75, "ESTANDAR", "TOP")))
+```
+```{r}
+names(df1)
+```
+```{r}
+head(df1$CATEGORIA,10)
+```
+```{r}
+#Mostrar las frecuencias de la variable CATEGORÍA
+table(df1$CATEGORIA)
+```
+```{r}
+#Obtener el histograma del precio por día.
+
+hist(df1$daily_price,main = "Histograma del precio por día")
+```
+```{r}
+#Estudiar la relación entre los dormitorios y baños de forma gráfica.
+
+ggplot(df1) + 
+  geom_point(mapping = aes(x = bedrooms, y = bathrooms)) + geom_smooth(aes(x = bedrooms, y = bathrooms), method = lm) +labs(title='Relación entre los Dormitorios y Baños')
+```
+
+```{r}
+names(df1)
+```
+
+
+```{r}
+#Mostrar un histograma del número de reseñas en función de si es un usuario verificado o no.
+
+histograma1 <-ggplot(df1)+
+  geom_histogram(mapping = aes(x=number_of_reviews, fill=host_identity_verified))+labs(title='Número de reseñas en función Usuarios Vericados o No ')
+histograma1
+```
+```{r}
+#Mostrar un histograma por cada valor de “CATEGORÍA” en el que se enseñe la cuantía del depósito de seguridad en función de si el anfitrión es super host o no.
+histograma2 <-ggplot(df1)+
+  geom_histogram(mapping = aes(x=security_deposit, fill=host_is_superhost))+facet_wrap("~CATEGORIA")+labs(title='Cuantia del Deposito de Seguridad SuperHost o No')
+histograma2
+```
+
+
