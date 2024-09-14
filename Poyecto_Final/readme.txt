@@ -18,6 +18,7 @@ Jupyter Notebooks: Entorno de trabajo interactivo para el desarrollo del proyect
 Pandas, NumPy, Scikit-learn: Bibliotecas de Python para el procesamiento de datos y el desarrollo de modelos.
 Joblib: Para la serialización y carga de modelos entrenados.
 Power BI: Herramienta de visualización para generar dashboards interactivos.
+SQL y Spoon Pentaho
 
 Resultados
 El proyecto genera predicciones sobre el riesgo de enfermedades cardíacas utilizando datos de dispositivos wearables.
