@@ -23,4 +23,4 @@ SQL y Spoon Pentaho
 Resultados
 El proyecto genera predicciones sobre el riesgo de enfermedades cardíacas utilizando datos de dispositivos wearables.
 Los resultados se presentan en forma de gráficos y dashboards que muestran métricas clave como pasos diarios, 
-calorías quemadas, actividad física intensa, y predicciones sobre el estado de salud del usuario.
+calorías quemadas, actividad física intensa.
