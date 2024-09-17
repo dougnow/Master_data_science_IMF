@@ -1,0 +1,295 @@
+///// Programa Data Science- Business Analytics 
+///// IMF  - Modalidad Virtual
+//// Estudiante Richard Douglas 
+
+//Preparacion inicial de la base de datos, se debe completar la informacion del caso de repaso 
+// en el que se crea la base de datos denominada RASTREO?CODIV.db
+
+para lo cual se incluye los codigos necesarios 
+
+//se procede a crear el nodo de personas
+LOAD CSV WITH HEADERS FROM 'file:///home/imfbigdata/neo4j/Nodos_Persona.csv' AS csv
+CREATE (p:Persona{id:toInt(csv.id_persona), nombre: csv.nombre_persona, estado:
+csv.estado_salud, hora_result_test: datetime(csv.hora_test_resultado), ubicacion_domicilio: point({x:
+toFloat(csv.latitud_domicilio), y: toFloat(csv.longitud_domicilio), crs:'wgs-84'})})
+
+//consulta de los nodos creados al momento
+MATCH (p:Persona) RETURN p
+LIMIT 15;
+
+// con esto se carga el CSV que contiene los nodos con Label Ubicación:
+LOAD CSV WITH HEADERS FROM 'file:///home/imfbigdata/neo4j/Nodos_Establecimiento.csv' AS csv
+CREATE (u:Ubicacion{id:toInt(csv.id_ubicacion), nombre: csv.nombre_establecimiento, tipo:
+csv.tipo_establecimiento})
+
+//La indexcacion es necesaria para facilitar la consulta de big data
+CREATE INDEX ON: Ubicacion(id);
+CREATE INDEX ON: Ubicacion(nombre);
+CREATE INDEX ON: Ubicacion (tipo);
+CREATE INDEX ON: Persona(id);
+CREATE INDEX ON: Persona(nombre);
+CREATE INDEX ON: Persona(estado);
+CREATE INDEX ON: Persona(hora_result_test);
+CREATE INDEX ON: Persona(ubicacion_domicilio);
+
+
+
+
+
+//Se realiza la carga del CSV de visitas
+LOAD CSV WITH HEADERS FROM 'file:///home/imfbigdata/neo4j/Nodos_Visita.csv' AS csv
+MATCH (p:Persona{id:toInt(csv.id_persona)}), (u:Ubicacion{id:toInt(csv.id_ubicacion)})
+CREATE (p)-[:REALIZA_VISITA]->(v:Visita {id_visita: toInt(csv.id_visita),
+inicio_visita:datetime(csv.inicio_visita), fin_visita:datetime(csv.fin_visita) })-
+[:A_ESTABLECIMIENTO]->(u)
+CREATE (p)-[vi:VISITA_EMPLAZAMIENTO{id: toInt(csv.id_visita),
+inicio_visita:datetime(csv.inicio_visita), fin_visita:datetime(csv.fin_visita)}]->(u)
+set v.duration=duration.inSeconds(v.inicio_visita,v.fin_visita)
+set vi.duration=duration.inSeconds(vi.inicio_visita,vi.fin_visita);
+//crear los nodos de Valladolid y Salamanca
+CREATE (c:Ciudad {nombre:"Valladolid"})-[:PARTE_DE]->(r:Region {nombre:"Castilla y Leon"})-
+[:PARTE_DE]->(p:Pais {nombre:"España"});
+
+//crear las relaciones correspondientes de Valladolid 
+MATCH (c:Ciudad {nombre:"Valladolid"}), (u:Ubicacion) WHERE u.id < 6
+CREATE (u)-[:PARTE_DE]->(c);
+
+//crear las relaciones correspondientes de Salamanca 
+MATCH (c:Ciudad {nombre:"Salamanca"}), (u:Ubicacion) WHERE u.id > 5
+CREATE (u)-[:PARTE_DE]->(c)
+
+
+
+
+
+
+
+
+///Después de los cambios se vuelven a cargar correctamente
+
+//Se insertan en primer lugar los tres nodos region, país y ciudad (Valladolid):
+CREATE (c:Ciudad {nombre:"Valladolid"})-[:PARTE_DE]->(r:Region {nombre:"Castilla y
+Leon"})-[:PARTE_DE]->(p:Pais {nombre:"España"})
+
+
+Castilla y Leon
+MATCH (r:Region {nombre:"Castilla y Leon"}) RETURN r
+//Se insertan en primer lugar los tres nodos region, país y ciudad (Valladolid):
+CREATE (c:Ciudad {nombre:"Valladolid"})-[:PARTE_DE]->(r:Region {nombre:"Castilla y Leon"})-[:PARTE_DE]->(p:Pais {nombre:"España"})
+
+//recuperar los nodos ya existentes region y pais, y utilizarlos para añadir relaciones con la ciudad de Salamanca
+MATCH (r:Region)
+MATCH (p:Pais)
+MERGE (c:Ciudad{nombre:'Salamanca'})-[:PARTE_DE]->(r)-[:PARTE_DE]->(p)
+
+MATCH (C: Ciudad)-[PARTE_DE] ->(r)-[:PARTE_DE] ->(p) RETURN c,r,p
+
+
+//asociar los establecimientos a su ciudad
+MATCH (c:Ciudad {nombre:"Valladolid"}), (u:Ubicacion) WHERE u.id < 6
+MERGE (u)-[:PARTE_DE]->(c)
+
+//asociar los establecimientos a su ciudad
+MATCH (c:Ciudad {nombre:"Salamanca"}), (u:Ubicacion) WHERE u.id > 5
+MERGE (u)-[:PARTE_DE]->(c)
+
+
+/////////////########## RESPUESTA A LAS CONSULTAS EVALUACION FINAL NEO4J  #################/////////////////////
+
+
+/////////#################  caso 1
+
+
+/////////caso 1  
+//Identificar las personas contagiadas y sanas , que se pueda ver en una tabla 
+MATCH (p:Persona) WITH p LIMIT 40 RETURN COUNT(CASE WHEN p.estado = 'Contagiado' THEN 1 END) AS Total_contagiados,
+COUNT(CASE WHEN p.estado = 'Sano' THEN 1 END) AS Total_sanos
+
+
+
+///////////// ###############caso 2
+
+///////////////cas 2 
+//Encontrar las personas sanas que han estado en contacto con una persona que ha dado positivo.
+MATCH (pc:Persona{estado:"Contagiado"})-[vc:VISITA_EMPLAZAMIENTO]->(u:Ubicacion)<-[vs:VISITA_EMPLAZAMIENTO]-(ps:Persona{estado:"Sano"})
+WHERE vc.inicio_visita <= vs.fin_visita AND vs.inicio_visita <= vc.fin_visita
+RETURN DISTINCT ps.nombre AS Persona_en_riesgo
+
+///////////################## caso 3 
+///////////caso 3
+//Encontrar una persona en especifico - Marcelino  y el riesgo de contagio 
+
+MATCH (pc:Persona {nombre: "Marcelino Rodriguez"})
+RETURN pc
+
+
+//Encontrar una persona en especifico - Marcelino
+MATCH path = (pc:Persona)-[vc:VISITA_EMPLAZAMIENTO]->(u:Ubicacion)<-[vs:VISITA_EMPLAZAMIENTO]-(ps:Persona)
+WHERE toLower(pc.nombre) = "marcelino rodriguez"
+AND ps.estado = "Sano"
+AND vs.inicio_visita >= vc.inicio_visita
+RETURN path
+ORDER BY vs.duration ASC
+
+
+
+//////////// #########################caso 4
+
+///caso 4 
+//Encontrar una persona en especifico - Marcelino - en saLida de tabla 
+MATCH (pc:Persona)-[vc:VISITA_EMPLAZAMIENTO]->(u:Ubicacion)<-[vs:VISITA_EMPLAZAMIENTO]-(ps:Persona)
+WHERE toLower(pc.nombre) = "marcelino rodriguez"
+AND ps.estado = "Sano"
+AND vs.inicio_visita >= vc.inicio_visita
+
+RETURN
+    pc.nombre AS Esparcidor_virus,
+    vc.inicio_visita AS Comienzo_esparcimiento_virus,
+    u.nombre AS Establecimiento,
+    ps.nombre AS Persona_en_riesgo,
+    vs.inicio_visita AS Inicio_visita_persona_en_riesgo
+ORDER BY vs.inicio_visita ASC
+
+
+
+///////////// ###########################3 caso 5 
+
+////// caso  5.1
+///////Construir una tabla (formato text y table) que identifique para cada persona contagiada (columna uno)
+//////personas sanas con las que ha coincidido en un establecimiento en el mismo tiempo 
+
+//Construir una tabla (formato text y table) que identifique para cada persona contagiada (columna uno)
+MATCH (pc:Persona {estado: "Contagiado"})-[vc:VISITA_EMPLAZAMIENTO]->(u:Ubicacion)<-[vs:VISITA_EMPLAZAMIENTO]-(ps:Persona {estado: "Sano"})
+WHERE vs.inicio_visita <= vc.fin_visita AND vc.inicio_visita <= vs.fin_visita
+WITH pc, collect({
+    Persona_en_contacto: ps.nombre,
+    Establecimiento: u.nombre,
+    Fecha_comienzo_solapamiento: CASE WHEN vc.inicio_visita >= vs.inicio_visita THEN vc.inicio_visita ELSE vs.inicio_visita END,
+    Fecha_fin_solapamiento: CASE WHEN vc.fin_visita <= vs.fin_visita THEN vc.fin_visita ELSE vs.fin_visita END
+}) AS Contactos
+RETURN pc.nombre AS Persona_contagiada, Contactos
+
+
+
+///////caso 5.2
+// 5.2  con la consulta anterior proceder a encontrar lo solicitado 
+MATCH (pc:Persona {estado: "Contagiado"})-[vc:VISITA_EMPLAZAMIENTO]->(u:Ubicacion)<-[vs:VISITA_EMPLAZAMIENTO]-(ps:Persona {estado: "Sano"})
+WHERE vs.inicio_visita <= vc.fin_visita AND vc.inicio_visita <= vs.fin_visita
+WITH pc, collect({
+    Persona_en_contacto: ps.nombre,
+    Establecimiento: u.nombre,
+    Fecha_comienzo_solapamiento: CASE WHEN vc.inicio_visita >= vs.inicio_visita THEN vc.inicio_visita ELSE vs.inicio_visita END,
+    Fecha_fin_solapamiento: CASE WHEN vc.fin_visita <= vs.fin_visita THEN vc.fin_visita ELSE vs.fin_visita END
+}) AS Contactos
+WITH pc.nombre AS Persona_contagiada, size(Contactos) AS Numero_de_contactos_sanos
+RETURN Persona_contagiada, Numero_de_contactos_sanos
+ORDER BY Numero_de_contactos_sanos DESC
+
+
+
+//////// #######################caso   6
+
+// caso 6 personas que depsues de conifrmacion contagio visitaron algun lugar
+MATCH (pc:Persona)
+WHERE toLower(pc.estado) = "contagiado"
+MATCH (pc)-[vc:VISITA_EMPLAZAMIENTO]->(u:Ubicacion)
+WHERE vc.inicio_visita > pc.hora_result_test
+RETURN pc.nombre AS Contagiado, 
+       vc.inicio_visita AS Fecha_Inicio_Visita, 
+       pc.hora_result_test AS Fecha_Confirmacion_Contagio
+
+
+////// ########################## caso 7
+
+// se procede a buscar lo solicitado en lo que indica 
+//se quiere averiguar el tiempo exacto (duración) que coincidió cada persona sana con la persona contagiada.
+MATCH (pc:Persona {estado: "Contagiado"})-[vc:VISITA_EMPLAZAMIENTO]->(u:Ubicacion)<-[vs:VISITA_EMPLAZAMIENTO]-(ps:Persona {estado: "Sano"})
+WHERE vc.fin_visita >= vs.inicio_visita AND vs.fin_visita >= vc.inicio_visita
+WITH pc, ps, u,
+    // Calcula el inicio y fin de la intersección de visitas
+    MAX(vc.inicio_visita, vs.inicio_visita) AS interseccion_inicio,
+    MIN(vc.fin_visita, vs.fin_visita) AS interseccion_fin
+WITH pc, ps, u,
+    // Calcula la duración de la coincidencia en milisegundos
+    (duration.between(interseccion_inicio, interseccion_fin)).seconds AS duracion_en_segundos
+WITH pc, ps, u,
+    // Convierte la duración a horas
+    duracion_en_segundos / 3600.0 AS duracion_en_horas,
+    // Redondea la duración a cuatro decimales
+    ROUND(duracion_en_segundos / 3600.0 * 10000) / 10000.0 AS duracion_en_horas_redondeada
+RETURN pc.nombre AS Persona_Contagiada, ps.nombre AS Persona_Sana, u.nombre AS Establecimiento, duracion_en_horas_redondeada AS Duracion_En_Horas
+
+
+////////////////////#################  caso 8
+
+//caso 8 Mostrar por persona sana el tiempo de exposicion total a personas contagiadas
+// Paso 1: Calcular la duración de coincidencia entre personas sanas y contagiadas
+MATCH (pc:Persona {estado: "Contagiado"})-[vc:VISITA_EMPLAZAMIENTO]->(u:Ubicacion)<-[vs:VISITA_EMPLAZAMIENTO]-(ps:Persona {estado: "Sano"})
+WHERE vc.fin_visita >= vs.inicio_visita AND vs.fin_visita >= vc.inicio_visita
+WITH ps,
+    MAX(vc.inicio_visita, vs.inicio_visita) AS interseccion_inicio,
+    MIN(vc.fin_visita, vs.fin_visita) AS interseccion_fin
+WITH ps,
+    // Calcula la duración en segundos
+    duration.between(interseccion_inicio, interseccion_fin).seconds AS duracion_en_segundos
+WITH ps,
+    // Convierte la duración en horas y redondea a cuatro decimales
+    ROUND(duracion_en_segundos / 3600.0 * 10000) / 10000.0 AS duracion_en_horas
+// Paso 2: Agrupar por persona sana y sumar el tiempo de exposición total
+WITH ps.nombre AS Persona_Sana, SUM(duracion_en_horas) AS Tiempo_Exposicion_Total
+// Paso 3: Ordenar por tiempo de exposición total y limitar a las 5 principales
+ORDER BY Tiempo_Exposicion_Total DESC
+LIMIT 5
+RETURN Persona_Sana, Tiempo_Exposicion_Total
+
+
+//////////####################  caso 9  
+//caso 9 se desea conocer los lugares visitados por parte de personas contagiadas 
+MATCH (p:Persona)-[v:VISITA_EMPLAZAMIENTO]->(u:Ubicacion)-[:PARTE_DE]->(c:Ciudad)
+WITH u, 
+     SUM(CASE WHEN p.estado = "Contagiado" THEN 1 ELSE 0 END) AS Num_visitas_Contagiados, 
+     COUNT(v) AS Num_total_visitas, 
+     c.nombre AS Ciudad
+WITH u, 
+     Num_visitas_Contagiados, 
+     Num_total_visitas, 
+     Ciudad, 
+     TOFLOAT(Num_visitas_Contagiados) / TOFLOAT(Num_total_visitas) * 100 AS Porcentaje_visitas_de_personas_contagiadas
+WHERE Num_visitas_Contagiados > 0
+RETURN u.nombre AS Establecimiento, 
+       Num_visitas_Contagiados, 
+       Num_total_visitas, 
+       FLOOR(Porcentaje_visitas_de_personas_contagiadas * 100) / 100 AS Porcentaje_visitas_de_personas_contagiadas, 
+       Ciudad
+ORDER BY Porcentaje_visitas_de_personas_contagiadas DESC
+
+
+///////////////########## caso 10 
+//caso 10 Mostrar las personas contagiadas fueron mismos lugares y sus distancias
+MATCH (p1:Persona {estado: "Contagiado"})-[]->(u:Ubicacion)<-[]-(p2:Persona {estado: "Contagiado"})
+WHERE NOT p1.nombre = p2.nombre
+MATCH (u)-[:PARTE_DE]->(c:Ciudad)
+WHERE c.nombre = "Valladolid" AND id(p1) < id(p2)
+RETURN DISTINCT p1.nombre AS Persona_Contagiada_1, p2.nombre AS Persona_Contagiada_2, c.nombre AS Ciudad,
+       (distance(p1.ubicacion_domicilio, p2.ubicacion_domicilio) / 1000) AS Distancia_domicilios_km
+ORDER BY Distancia_domicilios_km DESC
+LIMIT 3
+
+
+
+///// Programa Data Science- Business Analytics 
+///// IMF  - Modalidad Virtual
+//// Estudiante Richard Douglas 
+
+
+
+
+
+
+
+
+
+
+
+
+
