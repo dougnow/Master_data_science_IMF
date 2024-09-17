@@ -1,0 +1,2155 @@
+//Este es el archivo en el que reuno parte de las consultas y codigo para resolver el ejercicio
+//Universidad IMF - Programa de Master en Data Science & Business Analytics
+// Estudiante Richard Douglas Grijalba.  Modalidad Virtual 
+
+// Caso practico Mongo DB
+//1. Introducción al caso de negocio
+//El caso de negocio es el mismo que se ha preparado en el caso de repaso:
+// Una empresa multinacional decide llevar a cabo un proyecto basado en el internet de las cosas (IoT) con dos
+//objetivos principales:
+//1 - Optimizar las condiciones laborales de sus trabajadores en sus puestos de trabajo en oficina, especialmente en
+//época estival.
+//2-Optimizar costes mediante una mejor gestión del consumo eléctrico.
+//Para ello, selecciona dos de sus sedes en España, concretamente las de Valladolid y Sevilla, como sedes piloto.
+//El desarrollo del proyecto implica la instalación de dos sensores en cada una de las sedes, los cuales recogen en
+//tiempo real información sobre:
+//Sensor 1
+//Temperatura (ºC) y humedad relativa (%) exteriores.
+//Sensor 2
+//Emisiones de CO2 (kg CO2 / m2) y consumo eléctrico (kW).
+
+
+imfbigdata@imfbigdata-VBox:~$ mongo
+MongoDB shell version v4.4.0
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("b4347bbe-33fd-45bf-b245-2433bb0d78b0") }
+MongoDB server version: 4.4.0
+---
+The server generated these startup warnings when booting: 
+        2024-08-05T16:41:46.099+02:00: ***** SERVER RESTARTED *****
+        2024-08-05T16:41:46.400+02:00: Using the XFS filesystem is strongly recommended with the WiredTiger storage engine. See http://dochub.mongodb.org/core/prodnotes-filesystem
+        2024-08-05T16:41:47.635+02:00: Access control is not enabled for the database. Read and write access to data and configuration is unrestricted
+---
+---
+        Enable MongoDB's free cloud-based monitoring service, which will then receive and display
+        metrics about your deployment (disk utilization, CPU, operation statistics, etc).
+
+        The monitoring data will be available on a MongoDB website with a unique URL accessible to you
+        and anyone you share the URL with. MongoDB may use this information to make product
+        improvements and to suggest MongoDB products and deployment options to you.
+
+        To enable free monitoring, run the following command: db.enableFreeMonitoring()
+        To permanently disable this reminder, run the following command: db.disableFreeMonitoring()
+---
+imfbigdata@imfbigdata-VBox:~/mongodb$ mongo
+MongoDB shell version v4.4.0
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("5269c0b3-4cea-45e7-8d18-f62931489225") }
+MongoDB server version: 4.4.0
+---
+The server generated these startup warnings when booting: 
+        2024-08-05T18:40:47.691+02:00: ***** SERVER RESTARTED *****
+        2024-08-05T18:40:47.827+02:00: Using the XFS filesystem is strongly recommended with the WiredTiger storage engine. See http://dochub.mongodb.org/core/prodnotes-filesystem
+        2024-08-05T18:40:48.754+02:00: Access control is not enabled for the database. Read and write access to data and configuration is unrestricted
+---
+---
+        Enable MongoDB's free cloud-based monitoring service, which will then receive and display
+        metrics about your deployment (disk utilization, CPU, operation statistics, etc).
+
+        The monitoring data will be available on a MongoDB website with a unique URL accessible to you
+        and anyone you share the URL with. MongoDB may use this information to make product
+        improvements and to suggest MongoDB products and deployment options to you.
+
+        To enable free monitoring, run the following command: db.enableFreeMonitoring()
+        To permanently disable this reminder, run the following command: db.disableFreeMonitoring()
+---
+> show dbs
+admin         0.000GB
+config        0.000GB
+local         0.000GB
+sensores      0.000GB
+sensores_IoT  0.000GB
+test          0.000GB
+universidad   0.000GB
+> use sensores_IoT
+switched to db sensores_IoT
+> show collections;
+datos_sensores
+> db.datos_sensores.findOne({})
+{
+	"_id" : ObjectId("66b11180d837030a5728ed2e"),
+	"timestamp" : "2020-07-01T00:00:00Z",
+	"sensor_id" : 1,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"valor" : 16.61,
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 83.74,
+			"unidad" : "%"
+		}
+	]
+}
+> db.datos_sensores.count();
+5375
+
+//CASO 1 
+//Crear una nueva colección llamada “sensores” e introducir en ella cuatro documentos, correspondientes a cada
+//uno de los sensores que se encuentran instalados en este momento: dos en Sevilla y dos en Valladolid.
+
+> show dbs
+admin        0.000GB
+config       0.000GB
+local        0.000GB
+test         0.000GB
+universidad  0.000GB
+> db.sensores.insertMany([
+...     {
+...         "Ubicacion": "Valladolid",
+...         "medidas_sensor": [
+...             {"tipo_medida": "Temperatura", "unidad": "ºC"},
+...             {"tipo_medida": "Humedad_relativa", "unidad": "%"}
+...         ],
+...         "Coordenadas": [41.638597, 4.740186],
+...         "fecha_instalación": ISODate("2020-05-25T10:30:00Z"),
+...         "location_id": 1,
+...         "tipo_sensor": 1
+...     },
+...     {
+...         "Ubicacion": "Valladolid",
+...         "medidas_sensor": [
+...             {"tipo_medida": "Emision_CO2", "unidad": "gCO2/m2"},
+...             {"tipo_medida": "Consumo_electrico", "unidad": "kWh/m2"}
+...         ],
+...         "Coordenadas": [41.638597, 4.740186],
+...         "fecha_instalación": ISODate("2020-05-25T10:30:00Z"),
+...         "location_id": 1,
+...         "tipo_sensor": 2
+...     },
+...     {
+...         "Ubicacion": "Sevilla",
+...         "medidas_sensor": [
+...             {"tipo_medida": "Temperatura", "unidad": "ºC"},
+...             {"tipo_medida": "Humedad_relativa", "unidad": "%"}
+...         ],
+...         "Coordenadas": [37.409311, -5.949939],
+...         "fecha_instalación": ISODate("2020-05-28T11:30:00Z"),
+...         "location_id": 2,
+...         "tipo_sensor": 1
+...     },
+...     {
+...         "Ubicacion": "Sevilla",
+...         "medidas_sensor": [
+...             {"tipo_medida": "Emision_CO2", "unidad": "gCO2/m2"},
+...             {"tipo_medida": "Consumo_electrico", "unidad": "kWh/m2"}
+...         ],
+...         "Coordenadas": [37.409311, -5.949939],
+...         "fecha_instalación": ISODate("2020-05-28T11:30:00Z"),
+...         "location_id": 2,
+...         "tipo_sensor": 2
+...     }
+... ]);
+{
+	"acknowledged" : true,
+	"insertedIds" : [
+		ObjectId("66adae0e99442e2ccd083742"),
+		ObjectId("66adae0e99442e2ccd083743"),
+		ObjectId("66adae0e99442e2ccd083744"),
+		ObjectId("66adae0e99442e2ccd083745")
+	]
+}
+> show dbs
+admin        0.000GB
+config       0.000GB
+local        0.000GB
+test         0.000GB
+universidad  0.000GB
+> db.sensores.find().pretty();
+{
+	"_id" : ObjectId("66adae0e99442e2ccd083742"),
+	"Ubicacion" : "Valladolid",
+	"medidas_sensor" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"unidad" : "%"
+		}
+	],
+	"Coordenadas" : [
+		41.638597,
+		4.740186
+	],
+	"fecha_instalación" : ISODate("2020-05-25T10:30:00Z"),
+	"location_id" : 1,
+	"tipo_sensor" : 1
+}
+{
+	"_id" : ObjectId("66adae0e99442e2ccd083743"),
+	"Ubicacion" : "Valladolid",
+	"medidas_sensor" : [
+		{
+			"tipo_medida" : "Emision_CO2",
+			"unidad" : "gCO2/m2"
+		},
+		{
+			"tipo_medida" : "Consumo_electrico",
+			"unidad" : "kWh/m2"
+		}
+	],
+	"Coordenadas" : [
+		41.638597,
+		4.740186
+	],
+	"fecha_instalación" : ISODate("2020-05-25T10:30:00Z"),
+	"location_id" : 1,
+	"tipo_sensor" : 2
+}
+{
+	"_id" : ObjectId("66adae0e99442e2ccd083744"),
+	"Ubicacion" : "Sevilla",
+	"medidas_sensor" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"unidad" : "%"
+		}
+	],
+	"Coordenadas" : [
+		37.409311,
+		-5.949939
+	],
+	"fecha_instalación" : ISODate("2020-05-28T11:30:00Z"),
+	"location_id" : 2,
+	"tipo_sensor" : 1
+}
+{
+	"_id" : ObjectId("66adae0e99442e2ccd083745"),
+	"Ubicacion" : "Sevilla",
+	"medidas_sensor" : [
+		{
+			"tipo_medida" : "Emision_CO2",
+			"unidad" : "gCO2/m2"
+		},
+		{
+			"tipo_medida" : "Consumo_electrico",
+			"unidad" : "kWh/m2"
+		}
+	],
+	"Coordenadas" : [
+		37.409311,
+		-5.949939
+	],
+	"fecha_instalación" : ISODate("2020-05-28T11:30:00Z"),
+	"location_id" : 2,
+	"tipo_sensor" : 2
+}
+> show dbs
+admin        0.000GB
+config       0.000GB
+local        0.000GB
+test         0.000GB
+universidad  0.000GB
+> use sensoresDB
+switched to db sensoresDB
+> db.sensores.insertMany([
+...     {
+...         "Ubicacion": "Valladolid",
+...         "medidas_sensor": [
+...             {"tipo_medida": "Temperatura", "unidad": "ºC"},
+...             {"tipo_medida": "Humedad_relativa", "unidad": "%"}
+...         ],
+...         "Coordenadas": [41.638597, 4.740186],
+...         "fecha_instalación": ISODate("2020-05-25T10:30:00Z"),
+...         "location_id": 1,
+...         "tipo_sensor": 1
+...     },
+...     {
+...         "Ubicacion": "Valladolid",
+...         "medidas_sensor": [
+...             {"tipo_medida": "Emision_CO2", "unidad": "gCO2/m2"},
+...             {"tipo_medida": "Consumo_electrico", "unidad": "kWh/m2"}
+...         ],
+...         "Coordenadas": [41.638597, 4.740186],
+...         "fecha_instalación": ISODate("2020-05-25T10:30:00Z"),
+...         "location_id": 1,
+...         "tipo_sensor": 2
+...     },
+...     {
+...         "Ubicacion": "Sevilla",
+...         "medidas_sensor": [
+...             {"tipo_medida": "Temperatura", "unidad": "ºC"},
+...             {"tipo_medida": "Humedad_relativa", "unidad": "%"}
+...         ],
+...         "Coordenadas": [37.409311, -5.949939],
+...         "fecha_instalación": ISODate("2020-05-28T11:30:00Z"),
+...         "location_id": 2,
+...         "tipo_sensor": 1
+...     },
+...     {
+...         "Ubicacion": "Sevilla",
+...         "medidas_sensor": [
+...             {"tipo_medida": "Emision_CO2", "unidad": "gCO2/m2"},
+...             {"tipo_medida": "Consumo_electrico", "unidad": "kWh/m2"}
+...         ],
+...         "Coordenadas": [37.409311, -5.949939],
+...         "fecha_instalación": ISODate("2020-05-28T11:30:00Z"),
+...         "location_id": 2,
+...         "tipo_sensor": 2
+...     }
+... ]);
+{
+	"acknowledged" : true,
+	"insertedIds" : [
+		ObjectId("66adae6a99442e2ccd083746"),
+		ObjectId("66adae6a99442e2ccd083747"),
+		ObjectId("66adae6a99442e2ccd083748"),
+		ObjectId("66adae6a99442e2ccd083749")
+	]
+}
+> db.sensores.find().pretty();
+{
+	"_id" : ObjectId("66adae6a99442e2ccd083746"),
+	"Ubicacion" : "Valladolid",
+	"medidas_sensor" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"unidad" : "%"
+		}
+	],
+	"Coordenadas" : [
+		41.638597,
+		4.740186
+	],
+	"fecha_instalación" : ISODate("2020-05-25T10:30:00Z"),
+	"location_id" : 1,
+	"tipo_sensor" : 1
+}
+{
+	"_id" : ObjectId("66adae6a99442e2ccd083747"),
+	"Ubicacion" : "Valladolid",
+	"medidas_sensor" : [
+		{
+			"tipo_medida" : "Emision_CO2",
+			"unidad" : "gCO2/m2"
+		},
+		{
+			"tipo_medida" : "Consumo_electrico",
+			"unidad" : "kWh/m2"
+		}
+	],
+	"Coordenadas" : [
+		41.638597,
+		4.740186
+	],
+	"fecha_instalación" : ISODate("2020-05-25T10:30:00Z"),
+	"location_id" : 1,
+	"tipo_sensor" : 2
+}
+{
+	"_id" : ObjectId("66adae6a99442e2ccd083748"),
+	"Ubicacion" : "Sevilla",
+	"medidas_sensor" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"unidad" : "%"
+		}
+
+
+	],
+	"Coordenadas" : [
+		37.409311,
+		-5.949939
+	],
+	"fecha_instalación" : ISODate("2020-05-28T11:30:00Z"),
+	"location_id" : 2,
+	"tipo_sensor" : 1
+}
+{
+	"_id" : ObjectId("66adae6a99442e2ccd083749"),
+	"Ubicacion" : "Sevilla",
+	"medidas_sensor" : [
+		{
+			"tipo_medida" : "Emision_CO2",
+			"unidad" : "gCO2/m2"
+		},
+		{
+			"tipo_medida" : "Consumo_electrico",
+			"unidad" : "kWh/m2"
+		}
+	],
+	"Coordenadas" : [
+		37.409311,
+		-5.949939
+	],
+	"fecha_instalación" : ISODate("2020-05-28T11:30:00Z"),
+	"location_id" : 2,
+	"tipo_sensor" : 2
+}
+> show dbs
+admin        0.000GB
+config       0.000GB
+local        0.000GB
+sensoresDB   0.000GB
+test         0.000GB
+universidad  0.000GB
+
+
+> show dbs
+admin         0.000GB
+config        0.000GB
+local         0.000GB
+sensores      0.000GB
+sensores_IoT  0.000GB
+test          0.000GB
+universidad   0.000GB
+> use sesores_IoT
+switched to db sesores_IoT
+> // Contar el número de datos de temperatura en Valladolid (location_id: 1) entre el 1 y el 10 de julio
+> db.datos_sensores.find({
+...     "location_id": 1, // Valladolid
+...     "medidas.tipo_medida": {$in: ["Temperatura"]}, // Solo datos de temperatura
+...     "timestamp": {$gte: ISODate("2020-07-01T00:00:00Z"), $lt: ISODate("2020-07-11T00:00:00Z")} // Entre el 1 y el 10 de julio (incluido el 10)
+... }).count();
+0
+> // Contar el número de datos de temperatura en Sevilla (location_id: 2) entre el 1 y el 10 de julio
+> db.datos_sensores.find({
+...     "location_id": 2, // Sevilla
+...     "medidas.tipo_medida": {$in: ["Temperatura"]}, // Solo datos de temperatura
+...     "timestamp": {$gte: ISODate("2020-07-01T00:00:00Z"), $lt: ISODate("2020-07-11T00:00:00Z")} // Entre el 1 y el 10 de julio (incluido el 10)
+... }).count();
+0
+
+
+imfbigdata@imfbigdata-VBox:~/mongodb$ mongo
+MongoDB shell version v4.4.0
+connecting to: mongodb://127.0.0.1:27017/?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("aafae089-0f8f-4cf5-9023-759c8b179270") }
+MongoDB server version: 4.4.0
+---
+The server generated these startup warnings when booting: 
+        2024-08-05T18:40:47.691+02:00: ***** SERVER RESTARTED *****
+        2024-08-05T18:40:47.827+02:00: Using the XFS filesystem is strongly recommended with the WiredTiger storage engine. See http://dochub.mongodb.org/core/prodnotes-filesystem
+        2024-08-05T18:40:48.754+02:00: Access control is not enabled for the database. Read and write access to data and configuration is unrestricted
+---
+---
+        Enable MongoDB's free cloud-based monitoring service, which will then receive and display
+        metrics about your deployment (disk utilization, CPU, operation statistics, etc).
+
+        The monitoring data will be available on a MongoDB website with a unique URL accessible to you
+        and anyone you share the URL with. MongoDB may use this information to make product
+        improvements and to suggest MongoDB products and deployment options to you.
+
+        To enable free monitoring, run the following command: db.enableFreeMonitoring()
+        To permanently disable this reminder, run the following command: db.disableFreeMonitoring()
+---
+> show dbs
+admin         0.000GB
+config        0.000GB
+local         0.000GB
+sensores      0.000GB
+sensores_IoT  0.000GB
+test          0.000GB
+universidad   0.000GB
+> use sensores_IoT
+switched to db sensores_IoT
+> // Se procede a verificar la cantidad total de datos incertados en la colección 'datos_sensores'
+> db.datos_sensores.count();
+5375
+> // por lo tanto los datos si estas en la ingesta correctamente 
+> // Contar el número de datos de temperatura en Valladolid (location_id: 1) entre el 1 y el 10 de julio
+> db.datos_sensores.find({
+...     "location_id": 1, // Valladolid
+...     "medidas.tipo_medida": {$in: ["Temperatura"]}, // Solo datos de temperatura
+...     "timestamp": {$gte: ISODate("2020-07-01T00:00:00Z"), $lt: ISODate("2020-07-11T00:00:00Z")} // Entre el 1 y el 10 de julio (incluido el 10)
+... }).count();
+0
+> // Contar el número de datos de temperatura en Sevilla (location_id: 2) entre el 1 y el 10 de julio
+> db.datos_sensores.find({
+...     "location_id": 2, // Sevilla
+...     "medidas.tipo_medida": {$in: ["Temperatura"]}, // Solo datos de temperatura
+...     "timestamp": {$gte: ISODate("2020-07-01T00:00:00Z"), $lt: ISODate("2020-07-11T00:00:00Z")} // Entre el 1 y el 10 de julio (incluido el 10)
+... }).count();
+0
+> 
+
+// Para Valladolid (location_id: 1) y Sevilla (location_id: 2), encontrar documentos con temperatura > 55 ºC
+db.datos_sensores.find(
+  {
+    "location_id": { $in: [1, 2] },
+    "medidas.tipo_medida": "Temperatura",
+    "medidas.valor": { $gt: 55 }
+  },
+  {
+    _id: 0,
+    timestamp: 1,
+    location_id: 1,
+    "medidas.tipo_medida": 1,
+    "medidas.valor": 1
+  }
+).forEach(function(doc) {
+  printjson(doc);
+});
+
+
+> show dbs
+admin         0.000GB
+config        0.000GB
+local         0.000GB
+sensores      0.000GB
+sensores_IoT  0.000GB
+test          0.000GB
+universidad   0.000GB
+> use datos_sensores
+switched to db datos_sensores
+> show collections;
+> use datos_sensores
+switched to db datos_sensores
+> db.test.insert([
+...     {"timestamp":"2020-07-01T00:00:00Z","sensor_id":1,"location_id":2,"medidas":
+...     [{"tipo_medida":"Temperatura","valor":22.08,"unidad":"ºC"},
+...      {"tipo_medida":"Humedad_relativa","valor":34.92,"unidad":"% "}]},
+...     {"timestamp":"2020-07-01T00:00:00Z","sensor_id":2,"location_id":2,"medidas":
+...     [{"tipo_medida":"Emision_CO2","valor":2.055,"unidad":"gCO2/m2"},
+...      {"tipo_medida":"Consumo_electrico","valor":0.00269,"unidad":"kWh/m2"}]},
+...     {"timestamp":"2020-07-01T00:15:00Z","sensor_id":1,"location_id":2,"medidas":
+...     [{"tipo_medida":"Temperatura","valor":21.12,"unidad":"ºC"},
+...      {"tipo_medida":"Humedad_relativa","valor":37.7,"unidad":"% "}]},
+...     {"timestamp":"2020-07-01T00:15:00Z","sensor_id":2,"location_id":2,"medidas":
+...     [{"tipo_medida":"Emision_CO2","valor":2.102,"unidad":"gCO2/m2"},
+...      {"tipo_medida":"Consumo_electrico","valor":0.00272,"unidad":"kWh/m2"}]},
+...     {"timestamp":"2020-07-01T00:00:00Z","sensor_id":1,"location_id":1,"medidas":
+...     [{"tipo_medida":"Temperatura","valor":16.61,"unidad":"ºC"},
+...      {"tipo_medida":"Humedad_relativa","valor":83.74,"unidad":"% "}]},
+...     {"timestamp":"2020-07-01T00:00:00Z","sensor_id":2,"location_id":1,"medidas":
+...     [{"tipo_medida":"Emision_CO2","valor":1.572,"unidad":"gCO2/m2"},
+...      {"tipo_medida":"Consumo_electrico","valor":0.00188,"unidad":"kWh/m2"}]},
+...     {"timestamp":"2020-07-01T00:15:00Z","sensor_id":1,"location_id":1,"medidas":
+...     [{"tipo_medida":"Temperatura","valor":15.75,"unidad":"ºC"},
+...      {"tipo_medida":"Humedad_relativa","valor":83.08,"unidad":"% "}]},
+...     {"timestamp":"2020-07-01T00:15:00Z","sensor_id":2,"location_id":1,"medidas":
+...     [{"tipo_medida":"Emision_CO2","valor":1.626,"unidad":"gCO2/m2"},
+...      {"tipo_medida":"Consumo_electrico","valor":0.00146,"unidad":"kWh/m2"}]}
+... ])
+BulkWriteResult({
+	"writeErrors" : [ ],
+	"writeConcernErrors" : [ ],
+	"nInserted" : 8,
+	"nUpserted" : 0,
+	"nMatched" : 0,
+	"nModified" : 0,
+	"nRemoved" : 0,
+	"upserted" : [ ]
+})
+
+
+
+> show dbs
+admin           0.000GB
+config          0.000GB
+datos_sensores  0.000GB
+local           0.000GB
+sensores        0.000GB
+sensores_IoT    0.000GB
+test            0.000GB
+universidad     0.000GB
+> use datos_sensores
+switched to db datos_sensores
+> show collections;
+test
+> // Selecciona la base de datos y la colección
+> use datos_sensores
+switched to db datos_sensores
+> 
+> // Encuentra documentos con temperatura superior a 55 ºC en Valladolid (location_id: 1) y Sevilla (location_id: 2)
+> db.test.find({
+...     "medidas.tipo_medida": "Temperatura",
+...     "medidas.valor": { $gt: 55 }
+... }, {
+...     timestamp: 1,
+...     location_id: 1,
+...     "medidas.$": 1
+... }).forEach(printjson)
+{
+	"_id" : ObjectId("66b13c553c8c00fc18b3d752"),
+	"timestamp" : "2020-07-01T00:00:00Z",
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 83.74,
+			"unidad" : "% "
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b13c553c8c00fc18b3d754"),
+	"timestamp" : "2020-07-01T00:15:00Z",
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 83.08,
+			"unidad" : "% "
+		}
+	]
+}
+> 
+
+
+
+> // ahora como parte de lo solicitado en este punto 3 , se debe no solo identificar los valores sino realizar un cambio o correcion
+> // Contar documentos con temperatura superior a 55 ºC para Valladolid (location_id: 1)
+> var countValladolid = db.test.count({
+...     "location_id": 1,
+...     "medidas.tipo_medida": "Temperatura",
+...     "medidas.valor": { $gt: 55 }
+... });
+> print("Número de documentos erróneos en Valladolid: " + countValladolid);
+Número de documentos erróneos en Valladolid: 2
+> 
+> // Contar documentos con temperatura superior a 55 ºC para Sevilla (location_id: 2)
+> var countSevilla = db.test.count({
+...     "location_id": 2,
+...     "medidas.tipo_medida": "Temperatura",
+...     "medidas.valor": { $gt: 55 }
+... });
+> print("Número de documentos erróneos en Sevilla: " + countSevilla);
+Número de documentos erróneos en Sevilla: 0
+
+
+> show dbs
+admin           0.000GB
+config          0.000GB
+datos_sensores  0.000GB
+local           0.000GB
+sensores        0.000GB
+sensores_IoT    0.000GB
+test            0.000GB
+universidad     0.000GB
+> use sensores_IoT
+switched to db sensores_IoT
+> show collections;
+datos_sensores
+> //Encontrar el Valor Mínimo de Temperatura en Sevilla
+> // Encuentra el valor mínimo de temperatura en Sevilla
+> var temperaturaMinima = db.datos_sensores.aggregate([
+...     { $match: { "location_id": 2, "medidas.tipo_medida": "Temperatura" } },
+...     { $unwind: "$medidas" },
+...     { $match: { "medidas.tipo_medida": "Temperatura" } },
+...     { $sort: { "medidas.valor": 1 } },
+...     { $limit: 1 }
+... ]).toArray();
+> 
+> printjson(temperaturaMinima);
+[
+	{
+		"_id" : ObjectId("66b11180d837030a5728fd62"),
+		"timestamp" : "2020-07-11T19:30:00Z",
+		"sensor_id" : 1,
+		"location_id" : 2,
+		"medidas" : {
+			"tipo_medida" : "Temperatura",
+			"valor" : 9.14,
+			"unidad" : "ºC"
+		}
+	}
+]
+> 
+
+> //Encontrar el Valor Mínimo de Temperatura en Sevilla
+> // Encuentra el valor mínimo de temperatura en Sevilla
+> var temperaturaMinima = db.datos_sensores.aggregate([
+...     { $match: { "location_id": 2, "medidas.tipo_medida": "Temperatura" } },
+...     { $unwind: "$medidas" },
+...     { $match: { "medidas.tipo_medida": "Temperatura" } },
+...     { $sort: { "medidas.valor": 1 } },
+...     { $limit: 1 }
+... ]).toArray();
+> 
+> printjson(temperaturaMinima);
+[
+	{
+		"_id" : ObjectId("66b11180d837030a5728fd62"),
+		"timestamp" : "2020-07-11T19:30:00Z",
+		"sensor_id" : 1,
+		"location_id" : 2,
+		"medidas" : {
+			"tipo_medida" : "Temperatura",
+			"valor" : 9.14,
+			"unidad" : "ºC"
+		}
+	}
+]
+> // una vez encontrado el valor minimo de la temperatura se copia el valor del
+> // id del documento en cuestion y se procede a actualizar
+> 
+> db.datos_sensores.updateOne(
+...     { _id: ObjectId("66b11180d837030a5728fd62"), "medidas.tipo_medida": "Temperatura" },
+...     { $set: { "medidas.$.valor": db.datos_sensores.findOne({ _id: ObjectId("66b11180d837030a5728fd62") }).medidas.find(m => m.tipo_medida === "Temperatura").valor * 1.2 } }
+... );
+{ "acknowledged" : true, "matchedCount" : 1, "modifiedCount" : 1 }
+> // Verifica el documento actualizado
+> var documentoActualizado = db.datos_sensores.findOne({ _id: ObjectId("66b11180d837030a5728fd62") });
+> printjson(documentoActualizado);
+{
+	"_id" : ObjectId("66b11180d837030a5728fd62"),
+	"timestamp" : "2020-07-11T19:30:00Z",
+	"sensor_id" : 1,
+	"location_id" : 2,
+	"medidas" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"valor" : 10.968,
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 33.42,
+			"unidad" : "%"
+		}
+	]
+}
+
+//CASO 5 
+//Obtener los tres máximos valores de consumo eléctrico en un día de fin de semana en ambas ciudades y
+//comparar sus valores (se considera fin de semana a partir de las 16:00 del viernes y hasta las 7:45 del lunes).
+
+> use sensores_IoT
+switched to db sensores_IoT
+> show collections
+datos_sensores
+> var results = db.datos_sensores.aggregate([
+...     {
+...         $match: {
+...             "location_id": 1,
+...             "medidas.tipo_medida": "Consumo_electrico",
+...             "timestamp": {
+...                 $gte: ISODate("2020-07-03T16:00:00Z"),
+...                 $lt: ISODate("2020-07-06T07:45:00Z")
+...             }
+...         }
+...     },
+...     { $unwind: "$medidas" },
+...     { $match: { "medidas.tipo_medida": "Consumo_electrico" } },
+...     { $sort: { "medidas.valor": -1 } },
+...     { $limit: 3 },
+...     {
+...         $project: {
+...             timestamp: 1,
+...             "medidas.tipo_medida": 1,
+...             "medidas.valor": 1,
+...             "medidas.unidad": 1,
+...             day_of_week: { $dayOfWeek: "$timestamp" },
+...             hour: { $hour: "$timestamp" }
+...         }
+...     }
+... ]).toArray();
+> 
+> results.forEach(function(doc) {
+...     print("Document:");
+...     printjson(doc);
+... });
+> db.datos_sensores.find().limit(5).pretty()
+{
+	"_id" : ObjectId("66b11180d837030a5728ed2e"),
+	"timestamp" : "2020-07-01T00:00:00Z",
+	"sensor_id" : 1,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"valor" : 16.61,
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 83.74,
+			"unidad" : "%"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed2f"),
+	"timestamp" : "2020-07-01T00:00:00Z",
+	"sensor_id" : 1,
+	"location_id" : 2,
+	"medidas" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"valor" : 22.08,
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 34.92,
+			"unidad" : "%"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed30"),
+	"timestamp" : "2020-07-01T00:00:00Z",
+	"sensor_id" : 2,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Emision_CO2",
+			"valor" : 1.572,
+			"unidad" : "gCO2/m2"
+		},
+		{
+			"tipo_medida" : "Consumo_electrico",
+			"valor" : 0.00188,
+			"unidad" : "kWh/m2"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed31"),
+	"timestamp" : "2020-07-01T00:00:00Z",
+	"sensor_id" : 2,
+	"location_id" : 2,
+	"medidas" : [
+		{
+			"tipo_medida" : "Emision_CO2",
+			"valor" : 2.055,
+			"unidad" : "gCO2/m2"
+		},
+		{
+			"tipo_medida" : "Consumo_electrico",
+			"valor" : 0.00269,
+			"unidad" : "kWh/m2"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed32"),
+	"timestamp" : "2020-07-01T00:15:00Z",
+	"sensor_id" : 1,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"valor" : 15.75,
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 83.08,
+			"unidad" : "%"
+		}
+	]
+}
+
+// Se considera como perjudicial para la salud cualquier día en que el acumulado de las emisiones de CO2
+// durante el día completo supere los 420 g CO2/m2. De los 14 días que comprende nuestro estudio, se pretende
+// recuperar cuántos días se superó ese límite para Valladolid y, por otro lado, cuántos días se superó para Sevilla.
+
+//Se deben adjuntar tanto la captura del número de veces que se supera el límite para cada ciudad (clave
+// “días_sobre_limite_permitido”), así como otra captura que muestre todos los documentos de Valladolid, por un
+// lado, agrupados por la clave “dia_mes” y el acumulado total de emision CO2 bajo la clave
+// “suma_Emision_CO2”, ordenados de mayor a menor emisión.
+
+
+//Se considera como perjudicial para la salud cualquier día en que el acumulado de las emisiones de CO2
+> durante el día completo supere los 420 g CO2/m2.
+... 
+... show dbs
+uncaught exception: SyntaxError: unexpected token: identifier :
+@(shell):1:8
+> show dbs
+admin         0.000GB
+config        0.000GB
+local         0.000GB
+sensores      0.000GB
+sensores_IoT  0.000GB
+test          0.000GB
+universidad   0.000GB
+> use sensores_IoT
+switched to db sensores_IoT
+> show collections;
+datos_sensores
+> // Veamos primero a Valladolid 
+> var limite_CO2 = 420;
+> 
+> var resultados_valladolid = db.datos_sensores.aggregate([
+...     {
+...         $match: {
+...             "location_id": 1,
+...             "medidas.tipo_medida": "Emision_CO2",
+...             "timestamp": {
+...                 $gte: ISODate("2020-07-01T00:00:00Z"),
+...                 $lt: ISODate("2020-07-15T00:00:00Z") // Ajusta las fechas según tu estudio
+...             }
+...         }
+...     },
+...     { $unwind: "$medidas" },
+...     { $match: { "medidas.tipo_medida": "Emision_CO2" } },
+...     {
+...         $group: {
+...             _id: {
+...                 dia_mes: {
+...                     $dateToString: { format: "%Y-%m-%d", date: "$timestamp" }
+...                 }
+...             },
+...             total_CO2: { $sum: { $multiply: ["$medidas.valor", 1] } }
+...         }
+...     },
+...     {
+...         $match: {
+...             total_CO2: { $gt: limite_CO2 }
+...         }
+...     },
+...     {
+...         $count: "días_sobre_limite_permitido"
+...     }
+... ]).toArray();
+> 
+> printjson(resultados_valladolid);
+[ ]
+> show dbs
+admin         0.000GB
+config        0.000GB
+local         0.000GB
+sensores      0.000GB
+sensores_IoT  0.000GB
+test          0.000GB
+universidad   0.000GB
+> use sensores_IoT
+switched to db sensores_IoT
+> show collections;
+datos_sensores
+> db.datos_sensores.aggregate([
+...     {
+...         $match: {
+...             "location_id": 1,
+...             "medidas.tipo_medida": "Consumo_electrico",
+...             "timestamp": {
+...                 $gte: ISODate("2020-07-03T16:00:00Z"),
+...                 $lt: ISODate("2020-07-06T07:45:00Z")
+...             }
+...         }
+...     },
+...     { $unwind: "$medidas" },
+...     { $match: { "medidas.tipo_medida": "Consumo_electrico" } },
+...     { $sort: { "medidas.valor": -1 } },
+...     { $limit: 3 },
+...     {
+...         $project: {
+...             timestamp: 1,
+...             "medidas.tipo_medida": 1,
+...             "medidas.valor": 1,
+...             "medidas.unidad": 1,
+...             day_of_week: { $dayOfWeek: "$timestamp" },
+...             hour: { $hour: "$timestamp" }
+...         }
+...     }
+... ]).forEach(function(doc) {
+...     print("Document:");
+...     printjson(doc);
+... });
+> show dbs
+admin         0.000GB
+config        0.000GB
+local         0.000GB
+sensores      0.000GB
+sensores_IoT  0.000GB
+test          0.000GB
+universidad   0.000GB
+> use sensores_IoT
+switched to db sensores_IoT
+> show collections;
+datos_sensores
+> // Consulta de agregación
+> var results = db.datos_sensores.aggregate([
+...     {
+...         $match: {
+...             "location_id": 1,
+...             "medidas.tipo_medida": "Consumo_electrico",
+...             "timestamp": {
+...                 $gte: ISODate("2020-07-03T16:00:00Z"),
+...                 $lt: ISODate("2020-07-06T07:45:00Z")
+...             }
+...         }
+...     },
+...     { $unwind: "$medidas" },
+...     { $match: { "medidas.tipo_medida": "Consumo_electrico" } },
+...     { $sort: { "medidas.valor": -1 } },
+...     { $limit: 3 },
+...     {
+...         $project: {
+...             timestamp: 1,
+...             "medidas.tipo_medida": 1,
+...             "medidas.valor": 1,
+...             "medidas.unidad": 1,
+...             day_of_week: { $dayOfWeek: "$timestamp" },
+...             hour: { $hour: "$timestamp" }
+...         }
+...     }
+... ]);
+> 
+> // Imprimir los resultados
+> results.forEach(function(doc) {
+...     print("Document:");
+...     print("Timestamp: " + doc.timestamp);
+...     print("Tipo Medida: " + doc["medidas.tipo_medida"]);
+...     print("Valor: " + doc["medidas.valor"]);
+...     print("Unidad: " + doc["medidas.unidad"]);
+...     print("Día de la Semana: " + doc.day_of_week);
+...     print("Hora: " + doc.hour);
+...     print("\n");
+... });
+> // Consulta de agregación
+> var results = db.datos_sensores.aggregate([
+...     {
+...         $match: {
+...             "location_id": 1,
+...             "medidas.tipo_medida": "Consumo_electrico",
+...             "timestamp": {
+...                 $gte: ISODate("2020-07-03T16:00:00Z"),
+...                 $lt: ISODate("2020-07-06T07:45:00Z")
+...             }
+...         }
+...     },
+...     { $unwind: "$medidas" },
+...     { $match: { "medidas.tipo_medida": "Consumo_electrico" } },
+...     { $sort: { "medidas.valor": -1 } },
+...     { $limit: 3 },
+...     {
+...         $project: {
+...             timestamp: 1,
+...             "medidas.tipo_medida": 1,
+...             "medidas.valor": 1,
+...             "medidas.unidad": 1,
+...             day_of_week: { $dayOfWeek: "$timestamp" },
+...             hour: { $hour: "$timestamp" }
+...         }
+...     }
+... ]);
+> 
+> results.forEach(function(doc) {
+...     print("Document:");
+...     print("Timestamp: " + doc.timestamp);
+...     print("Tipo Medida: " + doc["medidas.tipo_medida"]);
+...     print("Valor: " + doc["medidas.valor"]);
+...     print("Unidad: " + doc["medidas.unidad"]);
+...     print("Día de la Semana: " + doc.day_of_week);
+...     print("Hora: " + doc.hour);
+...     print("\n");
+... });
+> db.datos_sensores.find({ "location_id": 1 }).pretty();
+{
+	"_id" : ObjectId("66b11180d837030a5728ed2e"),
+	"timestamp" : "2020-07-01T00:00:00Z",
+	"sensor_id" : 1,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"valor" : 16.61,
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 83.74,
+			"unidad" : "%"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed30"),
+	"timestamp" : "2020-07-01T00:00:00Z",
+	"sensor_id" : 2,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Emision_CO2",
+			"valor" : 1.572,
+			"unidad" : "gCO2/m2"
+		},
+		{
+			"tipo_medida" : "Consumo_electrico",
+			"valor" : 0.00188,
+			"unidad" : "kWh/m2"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed32"),
+	"timestamp" : "2020-07-01T00:15:00Z",
+	"sensor_id" : 1,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"valor" : 15.75,
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 83.08,
+			"unidad" : "%"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed34"),
+	"timestamp" : "2020-07-01T00:15:00Z",
+	"sensor_id" : 2,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Emision_CO2",
+			"valor" : 1.626,
+			"unidad" : "gCO2/m2"
+		},
+		{
+			"tipo_medida" : "Consumo_electrico",
+			"valor" : 0.00146,
+			"unidad" : "kWh/m2"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed36"),
+	"timestamp" : "2020-07-01T00:30:00Z",
+	"sensor_id" : 1,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"valor" : 14.08,
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 90.05,
+			"unidad" : "%"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed38"),
+	"timestamp" : "2020-07-01T00:30:00Z",
+	"sensor_id" : 2,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Emision_CO2",
+			"valor" : 1.614,
+			"unidad" : "gCO2/m2"
+		},
+		{
+			"tipo_medida" : "Consumo_electrico",
+			"valor" : 0.00173,
+			"unidad" : "kWh/m2"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed3a"),
+	"timestamp" : "2020-07-01T00:45:00Z",
+	"sensor_id" : 1,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"valor" : 10.62,
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 92.27,
+			"unidad" : "%"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed3c"),
+	"timestamp" : "2020-07-01T00:45:00Z",
+	"sensor_id" : 2,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Emision_CO2",
+			"valor" : 1.59,
+			"unidad" : "gCO2/m2"
+		},
+		{
+			"tipo_medida" : "Consumo_electrico",
+			"valor" : 0.00196,
+			"unidad" : "kWh/m2"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed3f"),
+	"timestamp" : "2020-07-01T01:00:00Z",
+	"sensor_id" : 1,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"valor" : 9.43,
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 93.39,
+			"unidad" : "%"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed41"),
+	"timestamp" : "2020-07-01T01:00:00Z",
+	"sensor_id" : 2,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Emision_CO2",
+			"valor" : 1.628,
+			"unidad" : "gCO2/m2"
+		},
+		{
+			"tipo_medida" : "Consumo_electrico",
+			"valor" : 0.00142,
+			"unidad" : "kWh/m2"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed43"),
+	"timestamp" : "2020-07-01T01:15:00Z",
+	"sensor_id" : 1,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"valor" : 13.07,
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 87.38,
+			"unidad" : "%"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed45"),
+	"timestamp" : "2020-07-01T01:15:00Z",
+	"sensor_id" : 2,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Emision_CO2",
+			"valor" : 1.641,
+			"unidad" : "gCO2/m2"
+		},
+		{
+			"tipo_medida" : "Consumo_electrico",
+			"valor" : 0.00171,
+			"unidad" : "kWh/m2"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed47"),
+	"timestamp" : "2020-07-01T01:30:00Z",
+	"sensor_id" : 1,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"valor" : 11.09,
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 75.61,
+			"unidad" : "%"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed49"),
+	"timestamp" : "2020-07-01T01:30:00Z",
+	"sensor_id" : 2,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Emision_CO2",
+			"valor" : 1.598,
+			"unidad" : "gCO2/m2"
+		},
+		{
+			"tipo_medida" : "Consumo_electrico",
+			"valor" : 0.00172,
+			"unidad" : "kWh/m2"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed4a"),
+	"timestamp" : "2020-07-01T01:45:00Z",
+	"sensor_id" : 1,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"valor" : 11.27,
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 87.64,
+			"unidad" : "%"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed4d"),
+	"timestamp" : "2020-07-01T01:45:00Z",
+	"sensor_id" : 2,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Emision_CO2",
+			"valor" : 1.601,
+			"unidad" : "gCO2/m2"
+		},
+		{
+			"tipo_medida" : "Consumo_electrico",
+			"valor" : 0.00173,
+			"unidad" : "kWh/m2"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed4f"),
+	"timestamp" : "2020-07-01T02:00:00Z",
+	"sensor_id" : 1,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"valor" : 17.06,
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 82.1,
+			"unidad" : "%"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed51"),
+	"timestamp" : "2020-07-01T02:00:00Z",
+	"sensor_id" : 2,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Emision_CO2",
+			"valor" : 1.62,
+			"unidad" : "gCO2/m2"
+		},
+		{
+			"tipo_medida" : "Consumo_electrico",
+			"valor" : 0.00137,
+			"unidad" : "kWh/m2"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed53"),
+	"timestamp" : "2020-07-01T02:15:00Z",
+	"sensor_id" : 1,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"valor" : 14.03,
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 84.32,
+			"unidad" : "%"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed55"),
+	"timestamp" : "2020-07-01T02:15:00Z",
+	"sensor_id" : 2,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Emision_CO2",
+			"valor" : 1.67,
+			"unidad" : "gCO2/m2"
+		},
+		{
+			"tipo_medida" : "Consumo_electrico",
+			"valor" : 0.00155,
+			"unidad" : "kWh/m2"
+		}
+	]
+}
+Type "it" for more
+> db.datos_sensores.find({
+...     "timestamp": {
+...         $gte: ISODate("2020-07-03T16:00:00Z"),
+...         $lt: ISODate("2020-07-06T07:45:00Z")
+...     }
+... }).pretty();
+> db.datos_sensores.aggregate([
+...     { $match: { "location_id": 1 } },
+...     { $limit: 5 }
+... ]).pretty();
+{
+	"_id" : ObjectId("66b11180d837030a5728ed2e"),
+	"timestamp" : "2020-07-01T00:00:00Z",
+	"sensor_id" : 1,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"valor" : 16.61,
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 83.74,
+			"unidad" : "%"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed30"),
+	"timestamp" : "2020-07-01T00:00:00Z",
+	"sensor_id" : 2,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Emision_CO2",
+			"valor" : 1.572,
+			"unidad" : "gCO2/m2"
+		},
+		{
+			"tipo_medida" : "Consumo_electrico",
+			"valor" : 0.00188,
+			"unidad" : "kWh/m2"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed32"),
+	"timestamp" : "2020-07-01T00:15:00Z",
+	"sensor_id" : 1,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"valor" : 15.75,
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 83.08,
+			"unidad" : "%"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed34"),
+	"timestamp" : "2020-07-01T00:15:00Z",
+	"sensor_id" : 2,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Emision_CO2",
+			"valor" : 1.626,
+			"unidad" : "gCO2/m2"
+		},
+		{
+			"tipo_medida" : "Consumo_electrico",
+			"valor" : 0.00146,
+			"unidad" : "kWh/m2"
+		}
+	]
+}
+{
+	"_id" : ObjectId("66b11180d837030a5728ed36"),
+	"timestamp" : "2020-07-01T00:30:00Z",
+	"sensor_id" : 1,
+	"location_id" : 1,
+	"medidas" : [
+		{
+			"tipo_medida" : "Temperatura",
+			"valor" : 14.08,
+			"unidad" : "ºC"
+		},
+		{
+			"tipo_medida" : "Humedad_relativa",
+			"valor" : 90.05,
+			"unidad" : "%"
+		}
+	]
+}
+> db.datos_sensores.aggregate([
+...     {
+...         $match: {
+...             "location_id": 1,
+...             "medidas.tipo_medida": "Consumo_electrico",
+...             "timestamp": {
+...                 $gte: ISODate("2020-07-03T16:00:00Z"),
+...                 $lt: ISODate("2020-07-06T07:45:00Z")
+...             }
+...         }
+...     },
+...     { $unwind: "$medidas" },
+...     { $match: { "medidas.tipo_medida": "Consumo_electrico" } },
+...     { $sort: { "medidas.valor": -1 } },
+...     { $limit: 3 },
+...     {
+...         $project: {
+...             timestamp: 1,
+...             "medidas.tipo_medida": 1,
+...             "medidas.valor": 1,
+...             "medidas.unidad": 1,
+...             day_of_week: { $dayOfWeek: "$timestamp" },
+...             hour: { $hour: "$timestamp" }
+...         }
+...     }
+... ]).pretty();
+
+//Resultados para SEvilla
+
+var results = db.datos_sensores.aggregate([
+    {
+        $match: {
+            "location_id": 2,
+            "medidas.tipo_medida": "Consumo_electrico",
+            "timestamp": {
+                $gte: ISODate("2020-07-03T16:00:00Z"),
+                $lt: ISODate("2020-07-06T07:45:00Z")
+            }
+        }
+    },
+    { $unwind: "$medidas" },
+    { $match: { "medidas.tipo_medida": "Consumo_electrico" } },
+    { $sort: { "medidas.valor": -1 } },
+    { $limit: 3 },
+    {
+        $project: {
+            timestamp: 1,
+            "medidas.tipo_medida": 1,
+            "medidas.valor": 1,
+            "medidas.unidad": 1,
+            day_of_week: { $dayOfWeek: "$timestamp" },
+            hour: { $hour: "$timestamp" }
+        }
+    }
+]).toArray();
+
+results.forEach(function(doc) {
+    print("Document:");
+    printjson(doc);
+});
+
+//caso 7 - Emisiones de CO2 de cada CIUDAD por separado
+//Obtener la media de emisiones de CO2 de cada ciudad por separado en la hora punta de personas en la
+//oficina, que se considera las 10 AM. Por tanto, se obtendrán por un lado los registros con hora 10 en el
+//timestamp, que midan CO2 y que sean de Valladolid y obtener la media de emisiones de CO2 durante los 14
+//días en esa hora como la clave “Avg_Emision_CO2” (recordar que cada hora se reciben cuatro valores desde el
+//sensor para cada ciudad).
+
+> // consulta de Valladolid
+> db.datos_sensores.aggregate([
+...     {
+...         "$addFields": {
+...             "timestamp": { "$toDate": "$timestamp" }
+...         }
+...     },
+...     {
+...         $unwind: "$medidas"
+...     },
+...     {
+...         $match: {
+...             "medidas.tipo_medida": "Emision_CO2",
+...             "location_id": 1, // Valladolid
+...             "timestamp": {
+...                 $gte: ISODate("2020-07-03T00:00:00Z"),
+...                 $lt: ISODate("2020-07-17T00:00:00Z")
+...             }
+...         }
+...     },
+...     {
+...         $addFields: {
+...             hour: { $hour: "$timestamp" }
+...         }
+...     },
+...     {
+...         $match: {
+...             hour: 10
+...         }
+...     },
+...     {
+...         $group: {
+...             _id: "$location_id",
+...             Avg_Emision_CO2: { $avg: "$medidas.valor" }
+...         }
+...     },
+...     {
+...         $project: {
+...             _id: 0,
+...             location_id: "$_id",
+...             Avg_Emision_CO2: { $round: ["$Avg_Emision_CO2", 2] }
+...         }
+...     }
+... ]).pretty();
+{ "location_id" : 1, "Avg_Emision_CO2" : 6.67 }
+
+
+// Vamos con la consulta de Valencia
+
+db.datos_sensores.aggregate([
+    {
+        "$addFields": {
+            "timestamp": { "$toDate": "$timestamp" }
+        }
+    },
+    {
+        $unwind: "$medidas"
+    },
+    {
+        $match: {
+            "medidas.tipo_medida": "Emision_CO2",
+            "location_id": 2, // Sevilla
+            "timestamp": {
+                $gte: ISODate("2020-07-03T00:00:00Z"),
+                $lt: ISODate("2020-07-17T00:00:00Z")
+            }
+        }
+    },
+    {
+        $addFields: {
+            hour: { $hour: "$timestamp" }
+        }
+    },
+    {
+        $match: {
+            hour: 10
+        }
+    },
+    {
+        $group: {
+            _id: "$location_id",
+            Avg_Emision_CO2: { $avg: "$medidas.valor" }
+        }
+    },
+    {
+        $project: {
+            _id: 0,
+            location_id: "$_id",
+            Avg_Emision_CO2: { $round: ["$Avg_Emision_CO2", 2] }
+        }
+    }
+]).pretty();
+
+db.datos_sensores.aggregate([
+    ...     {
+    ...         "$addFields": {
+    ...             "timestamp": { "$toDate": "$timestamp" }
+    ...         }
+    ...     },
+    ...     {
+    ...         $unwind: "$medidas"
+    ...     },
+    ...     {
+    ...         $match: {
+    ...             "medidas.tipo_medida": "Emision_CO2",
+    ...             "location_id": 2, // Sevilla
+    ...             "timestamp": {
+    ...                 $gte: ISODate("2020-07-03T00:00:00Z"),
+    ...                 $lt: ISODate("2020-07-17T00:00:00Z")
+    ...             }
+    ...         }
+    ...     },
+    ...     {
+    ...         $addFields: {
+    ...             hour: { $hour: "$timestamp" }
+    ...         }
+    ...     },
+    ...     {
+    ...         $match: {
+    ...             hour: 10
+    ...         }
+    ...     },
+    ...     {
+    ...         $group: {
+    ...             _id: "$location_id",
+    ...             Avg_Emision_CO2: { $avg: "$medidas.valor" }
+    ...         }
+    ...     },
+    ...     {
+    ...         $project: {
+    ...             _id: 0,
+    ...             location_id: "$_id",
+    ...             Avg_Emision_CO2: { $round: ["$Avg_Emision_CO2", 2] }
+    ...         }
+    ...     }
+    ... ]).pretty();
+    { "location_id" : 2, "Avg_Emision_CO2" : 7.13 }
+
+    
+    //Caso 8 - Tema de temperaturas maximas y actualizar los valores de temperatura
+
+    //Se ha descubierto que el sensor de temperatura de Valladolid mide 1,5 ºC de más. Por ello, se pide actualizar
+//todos los valores correspondientes a este sensor decrementando el valor de la temperatura en 1,5 ºC.
+//Antes de realizar la actualización, se ordenarán mostrando primero el de mayor temperatura, y muestra los dos
+//primeros documentos del sensor de Valladolid con la mayor temperatura. Solo mostrar las siguientes claves:
+//timestamp, “location_id”. Del array de medidas solo mostrar el primer ítem, por ejemplo: "medidas" : [ {
+//"tipo_medida" : "Temperatura", "valor" : 15.75, "unidad" : "ºC" } ] }. No incluir el ObjectId
+
+> show dbs
+admin         0.000GB
+config        0.000GB
+local         0.000GB
+sensores      0.000GB
+sensores_IoT  0.000GB
+test          0.000GB
+universidad   0.000GB
+> use sensores_IoT
+switched to db sensores_IoT
+> // Se solicita que se debe buscar los objetos o documentos de los sensores con mayor temperatura
+> 
+> db.datos_sensores.aggregate([
+...   {
+...     $match: { 
+...       "location_id": 1, 
+...       "medidas.tipo_medida": "Temperatura" 
+...     }
+...   },
+...   {
+...     $unwind: "$medidas"
+...   },
+...   {
+...     $match: { 
+...       "medidas.tipo_medida": "Temperatura" 
+...     }
+...   },
+...   {
+...     $sort: { "medidas.valor": -1 }
+...   },
+...   {
+...     $limit: 2
+...   },
+...   {
+...     $project: {
+...       "_id": 0,
+...       "timestamp": 1,
+...       "location_id": 1,
+...       "medidas": {
+...         "tipo_medida": "$medidas.tipo_medida",
+...         "valor": "$medidas.valor",
+...         "unidad": "$medidas.unidad"
+...       }
+...     }
+...   }
+... ]).pretty()
+{
+	"timestamp" : "2020-07-11T19:30:00Z",
+	"location_id" : 1,
+	"medidas" : {
+		"tipo_medida" : "Temperatura",
+		"valor" : 125.48,
+		"unidad" : "ºC"
+	}
+}
+{
+	"timestamp" : "2020-07-05T17:15:00Z",
+	"location_id" : 1,
+	"medidas" : {
+		"tipo_medida" : "Temperatura",
+		"valor" : 67.27,
+		"unidad" : "ºC"
+	}
+}
+> // Una ve que se encuentre el Id u odbjeto con mayor temperatura se debe proceder a 
+> //Después de verificar los dos documentos con la mayor temperatura, actualiza los valores decrementando 1.5°C.
+> 
+> //Actualizar los valores 
+> 
+> db.datos_sensores.updateMany(
+...   {
+...     "location_id": 1,
+...     "medidas.tipo_medida": "Temperatura"
+...   },
+...   {
+...     $inc: { "medidas.$.valor": -1.5 }
+...   }
+... );
+{ "acknowledged" : true, "matchedCount" : 1344, "modifiedCount" : 1344 }
+> 
+> //Segun lo solicitado se debe verificar que los datos se actualizacen
+> // por lo tanto se procede a  verificar que los valores han sido actualizados correctamente
+> 
+> db.datos_sensores.aggregate([
+...   {
+...     $match: { 
+...       "location_id": 1, 
+...       "medidas.tipo_medida": "Temperatura" 
+...     }
+...   },
+...   {
+...     $unwind: "$medidas"
+...   },
+...   {
+...     $match: { 
+...       "medidas.tipo_medida": "Temperatura" 
+...     }
+...   },
+...   {
+...     $sort: { "medidas.valor": -1 }
+...   },
+...   {
+...     $limit: 2
+...   },
+...   {
+...     $project: {
+...       "_id": 0,
+...       "timestamp": 1,
+...       "location_id": 1,
+...       "medidas": {
+...         "tipo_medida": "$medidas.tipo_medida",
+...         "valor": "$medidas.valor",
+...         "unidad": "$medidas.unidad"
+...       }
+...     }
+...   }
+... ]).pretty()
+{
+	"timestamp" : "2020-07-11T19:30:00Z",
+	"location_id" : 1,
+	"medidas" : {
+		"tipo_medida" : "Temperatura",
+		"valor" : 123.98,
+		"unidad" : "ºC"
+	}
+}
+{
+	"timestamp" : "2020-07-05T17:15:00Z",
+	"location_id" : 1,
+	"medidas" : {
+		"tipo_medida" : "Temperatura",
+		"valor" : 65.77,
+		"unidad" : "ºC"
+	}
+}
+
+// Caso 9 - Se quieren analizar los porcentajes de humedad relativa en horario laboral (8-18:00) de ambas ciudades
+// humedad relativa por ciudad
+
+db.datos_sensores.aggregate([
+    ...   // Convertir timestamp a fecha
+    ...   {
+    ...     "$addFields": { "timestamp": { "$toDate": "$timestamp" } }
+    ...   },
+    ...   // Extraer la hora del timestamp
+    ...   {
+    ...     "$addFields": { "hora": { "$dateToString": { "format": "%H", "date": "$timestamp" } } }
+    ...   },
+    ...   // Convertir la hora a entero
+    ...   {
+    ...     "$addFields": { "hora": { "$toInt": "$hora" } }
+    ...   },
+    ...   // Desenrollar el array de medidas
+    ...   {
+    ...     $unwind: "$medidas"
+    ...   },
+    ...   // Filtrar por horario laboral y tipo de medida
+    ...   {
+    ...     $match: {
+    ...       $and: [
+    ...         {
+    ...           hora: {
+    ...             $gte: 8,
+    ...             $lte: 18
+    ...           }
+    ...         },
+    ...         {
+    ...           "medidas.tipo_medida": "Humedad_relativa"
+    ...         }
+    ...       ]
+    ...     }
+    ...   },
+    ...   // Ordenar por valor de humedad relativa
+    ...   {
+    ...     $sort: {
+    ...       "medidas.valor": 1
+    ...     }
+    ...   },
+    ...   // Agrupar por location_id y recoger los documentos
+    ...   {
+    ...     $group: {
+    ...       _id: "$location_id",
+    ...       docs_por_ciudad: {
+    ...         $push: {
+    ...           timestamp: "$timestamp",
+    ...           tipo_medida: "$medidas.tipo_medida",
+    ...           valor: "$medidas.valor",
+    ...           unidad: "$medidas.unidad"
+    ...         }
+    ...       }
+    ...     }
+    ...   },
+    ...   // Proyectar los primeros 5 documentos por ciudad
+    ...   {
+    ...     $project: {
+    ...       _id: 0,
+    ...       location_id: "$_id",
+    ...       datos: {
+    ...         $slice: ["$docs_por_ciudad", 5]
+    ...       }
+    ...     }
+    ...   },
+    ...   // Ordenar por location_id
+    ...   {
+    ...     $sort: {
+    ...       "location_id": 1
+    ...     }
+    ...   }
+    ... ]).pretty();
+    {
+        "location_id" : 1,
+        "datos" : [
+            {
+                "timestamp" : ISODate("2020-07-03T16:45:00Z"),
+                "tipo_medida" : "Humedad_relativa",
+                "valor" : 5.74,
+                "unidad" : "%"
+            },
+            {
+                "timestamp" : ISODate("2020-07-06T17:00:00Z"),
+                "tipo_medida" : "Humedad_relativa",
+                "valor" : 6.81,
+                "unidad" : "%"
+            },
+            {
+                "timestamp" : ISODate("2020-07-10T17:45:00Z"),
+                "tipo_medida" : "Humedad_relativa",
+                "valor" : 7.6,
+                "unidad" : "%"
+            },
+            {
+                "timestamp" : ISODate("2020-07-14T17:30:00Z"),
+                "tipo_medida" : "Humedad_relativa",
+                "valor" : 8.14,
+                "unidad" : "%"
+            },
+            {
+                "timestamp" : ISODate("2020-07-05T17:15:00Z"),
+                "tipo_medida" : "Humedad_relativa",
+                "valor" : 8.16,
+                "unidad" : "%"
+            }
+        ]
+    }
+    {
+        "location_id" : 2,
+        "datos" : [
+            {
+                "timestamp" : ISODate("2020-07-05T14:00:00Z"),
+                "tipo_medida" : "Humedad_relativa",
+                "valor" : 0.3,
+                "unidad" : "%"
+            },
+            {
+                "timestamp" : ISODate("2020-07-01T16:15:00Z"),
+                "tipo_medida" : "Humedad_relativa",
+                "valor" : 0.61,
+                "unidad" : "%"
+            },
+            {
+                "timestamp" : ISODate("2020-07-02T15:15:00Z"),
+                "tipo_medida" : "Humedad_relativa",
+                "valor" : 0.94,
+                "unidad" : "%"
+            },
+            {
+                "timestamp" : ISODate("2020-07-14T14:45:00Z"),
+                "tipo_medida" : "Humedad_relativa",
+                "valor" : 1.25,
+                "unidad" : "%"
+            },
+            {
+                "timestamp" : ISODate("2020-07-10T13:45:00Z"),
+                "tipo_medida" : "Humedad_relativa",
+                "valor" : 2.1,
+                "unidad" : "%"
+            }
+        ]
+    }
+    > 
+    
+
+     // Caso 10
+> //Se quieren actualizar todos los documentos para introducir en el array de medidas dos nuevos elementos que
+> // van a ser constantes y que van a tener el valor del precio del kWh y de la superficie total de la sede.
+> 
+> // Actualizar documentos para Valladolid
+> db.datos_sensores.updateMany(
+...   {
+...     "location_id": 1,
+...     "medidas.tipo_medida": "Consumo_electrico"
+...   },
+...   {
+...     $push: {
+...       medidas: {
+...         $each: [
+...           { "precio_kWh": 0.102, "unidad": "€/kWh" },
+...           { "superficie": 450, "unidad": "m2" }
+...         ]
+...       }
+...     }
+...   }
+... );
+{ "acknowledged" : true, "matchedCount" : 1344, "modifiedCount" : 1344 }
+> 
+> // Actualizar documentos para Sevilla
+> db.datos_sensores.updateMany(
+...   {
+...     "location_id": 2,
+...     "medidas.tipo_medida": "Consumo_electrico"
+...   },
+...   {
+...     $push: {
+...       medidas: {
+...         $each: [
+...           { "precio_kWh": 0.107, "unidad": "€/kWh" },
+...           { "superficie": 550, "unidad": "m2" }
+...         ]
+...       }
+...     }
+...   }
+... );
+{ "acknowledged" : true, "matchedCount" : 1344, "modifiedCount" : 1344 }
+> 
+> // Verificar los cambios
+> // Verificar documentos para Valladolid
+> db.datos_sensores.find(
+...   {
+...     "location_id": 1,
+...     "timestamp": {
+...       $in: [
+...         ISODate("2020-07-01T08:00:00Z"),
+...         ISODate("2020-07-01T23:15:00Z")
+...       ]
+...     }
+...   },
+...   {
+...     "timestamp": 1,
+...     "location_id": 1,
+...     "medidas": 1
+...   }
+... ).limit(4).pretty();
+> 
+> // Verificar documentos para Sevilla
+> db.datos_sensores.find(
+...   {
+...     "location_id": 2,
+...     "timestamp": {
+...       $in: [
+...         ISODate("2020-07-01T08:00:00Z"),
+...         ISODate("2020-07-01T23:15:00Z")
+...       ]
+...     }
+...   },
+...   {
+...     "timestamp": 1,
+...     "location_id": 2,
+...     "medidas": 1
+...   }
+... ).limit(4).pretty();
+> 
+> 
+> // Verificar documentos para Valladolid
+> db.datos_sensores.find(
+...   {
+...     "location_id": 1,
+...     "timestamp": {
+...       $in: [
+...         ISODate("2020-07-01T08:00:00Z"),
+...         ISODate("2020-07-01T23:15:00Z")
+...       ]
+...     }
+...   },
+...   {
+...     "_id": 0,
+...     "timestamp": 1,
+...     "location_id": 1,
+...     "medidas": {
+...       $elemMatch: {
+...         $or: [
+...           { "precio_kWh": { $exists: true } },
+...           { "superficie": { $exists: true } }
+...         ]
+...       }
+...     }
+...   }
+... ).limit(4).pretty();
+> 
+> 
+> // Verificar documentos para Sevilla
+> db.datos_sensores.find(
+...   {
+...     "location_id": 2,
+...     "timestamp": {
+...       $in: [
+...         ISODate("2020-07-01T08:00:00Z"),
+...         ISODate("2020-07-01T23:15:00Z")
+...       ]
+...     }
+...   },
+...   {
+...     "_id": 0,
+...     "timestamp": 1,
+...     "location_id": 2,
+...     "medidas": {
+...       $elemMatch: {
+...         $or: [
+...           { "precio_kWh": { $exists: true } },
+...           { "superficie": { $exists: true } }
+...         ]
+...       }
+...     }
+...   }
+... ).limit(4).pretty();
+> 
+
+//Este es el archivo en el que reuno parte de las consultas y codigo para resolver el ejercicio
+//Universidad IMF - Programa de Master en Data Science & Business Analytics
+// Estudiante Richard Douglas Grijalba.  Modalidad Virtual 
+// Pura Vida Costa Rica
